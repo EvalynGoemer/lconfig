@@ -1,0 +1,65 @@
+lconfig is a configuration system made in rust inspired by kconfig and menuconfig
+
+Keybinds:
+ - Use [UP] / [DOWN] to select menu items
+ - Use [PGUP] / [PGDOWN] to move 10 items
+ - Use [HOME] to goto the top
+ - Use [END] to goto the bottom
+ - Use [ENTER] to interact with a menu item
+ - Use [BACKSPACE] to go back
+ - Press [TAB] to open this menu
+ - Press [F9] to save changes
+ - Press [F12] to exit
+
+The current config format is a custom DSL that lets you define options and thier related properties
+along with a few other things
+
+Example Config:
+  proj "Example"
+
+  opt CONFIG_MENU(bool) -> menu {
+    display: "menu"
+    default: true
+  }
+
+  opt CONFIG_FOO(bool) {
+    display: "foo"
+    default: false
+    within: CONFIG_MENU
+    depends: [CONFIG_MENU]
+  }
+
+Keywords:
+  'proj': Takes in a string to name the root menu / project
+  'env': Takes in an identifier to import into the namespace from the enviroment
+  'opt': Starts an option definition
+
+Options:
+  Defining an option uses the following syntax:
+    opt IDENTIFIER(type) -> modifier {
+      attribute: value
+    }
+
+Option Types:
+  'select': a set of options that can be picked between
+  'bool': a true or false value
+  'string': a user selectable string
+  'int': a user selectable signed 64 bit integer
+  'null': nothing to configure
+
+Generic Attributes:
+  'diaplay': the name shown within the menu (string) <REQUIRED>
+  'default': the default value to be selected (type of option) <REQUIRED>
+  'description': a longer description of what an option does (string)
+  'within': makes this object show under the given submenu (identifier)
+  `depends`: only shows this option if the expression evaluates as true (expression)
+
+Selection Attributes:
+  'options': The name of the options to show in the menu (string array)
+  'values': The value of the coresponding option (array)
+
+Expressions:
+  Expressions are used to evaluate things at runtime, they use reverse polish notation and
+  are represented as a series of space seperated values/operations within square brackets
+
+  Example: [CONFIG_FOO true ==]
