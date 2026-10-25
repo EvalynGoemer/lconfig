@@ -10,26 +10,32 @@ use lconfig_parser::{expression::ExpressionResult::{CircularExpression, Failed, 
 pub struct MainMenu {
     pub liststate: ListState,
     pub submenu_stack: Vec<usize>,
-    pub selected_stack: Vec<usize>
+    pub selected_stack: Vec<usize>,
+    pub rendered: usize,
 }
 
 impl Default for MainMenu {
     fn default() -> Self {
         let mut liststate = ListState::default();
         liststate.select_first();
-        Self { liststate, submenu_stack: Vec::new(), selected_stack: Vec::new() }
+        Self { liststate, submenu_stack: Vec::new(), selected_stack: Vec::new(), rendered: 0 }
     }
 }
 
 impl MainMenu {
+    #[inline]
+    fn submenu_index(&self) -> usize {
+        self.submenu_stack.last().copied().unwrap_or(0)
+    }
+
     fn move_selection(&mut self, namespace: &Namespace, forward: bool) {
-        let submenu = &namespace.vector[self.submenu_stack.last().copied().unwrap_or(0)];
+        let submenu = &namespace.vector[self.submenu_index()];
         if submenu.children.is_empty() {
             return;
         }
 
         let current = self.liststate.selected();
-        let len = submenu.children.len();
+        let len = self.rendered;
         let next_index = match current {
             None => 0,
             Some(i) if forward => (i + 1) % len,
@@ -37,11 +43,6 @@ impl MainMenu {
         };
 
         self.liststate.select(Some(next_index));
-    }
-
-    #[inline]
-    fn submenu_index(&self) -> usize {
-        self.submenu_stack.last().copied().unwrap_or(0)
     }
 
     fn interact(&mut self, namespace: &mut Namespace, prefer_menu: bool) -> MenuStackAction {
@@ -127,8 +128,8 @@ impl Component for MainMenu  {
             Some(ListItem::new(text))
         }) .collect();
 
-        let item_count = list_items.len();
-        let has_scrollbar = item_count > inner.height as usize;
+        self.rendered = list_items.len();
+        let has_scrollbar = self.rendered > inner.height as usize;
 
         let [list_area, scrollbar_area] = Layout::horizontal([
             Constraint::Fill(1),
@@ -143,7 +144,7 @@ impl Component for MainMenu  {
         frame.render_stateful_widget(list, list_area, &mut self.liststate);
 
         if has_scrollbar {
-            let max_offset = item_count - list_area.height as usize;
+            let max_offset = self.rendered - list_area.height as usize;
             let mut scrollbar_state = ScrollbarState::new(max_offset + 1)
                 .position(self.liststate.offset().min(max_offset))
                 .viewport_content_length(list_area.height as usize);
